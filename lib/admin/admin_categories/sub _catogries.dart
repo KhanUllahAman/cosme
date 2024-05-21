@@ -7,6 +7,8 @@ import 'package:cosme/widget/text%20and%20icon/big_text.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
+
 class SubCatogeries extends StatefulWidget {
   final String selectproducts;
   const SubCatogeries({Key? key, required this.selectproducts})
@@ -14,6 +16,7 @@ class SubCatogeries extends StatefulWidget {
   @override
   State<SubCatogeries> createState() => _SubCatogeriesState();
 }
+
 class _SubCatogeriesState extends State<SubCatogeries> {
   String subproduct = '';
   List<String> productDataList = [];
@@ -21,6 +24,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
   TextEditingController imageURLController = TextEditingController();
   File? image;
   final picker = ImagePicker();
+
   Future<List<QueryDocumentSnapshot>> _fetchProductlist() async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection('Product')
@@ -31,15 +35,18 @@ class _SubCatogeriesState extends State<SubCatogeries> {
     print("My Debug: $productList");
     return productList;
   }
+
   void initState() {
     super.initState();
     _fetchProductlist(); // Fetch regions when the screen initializes
   }
+
   @override
   void dispose() {
     productNameController.clear();
     super.dispose();
   }
+
   Future<void> _storeClickedItem(String itemName) async {
     try {
       await FirebaseFirestore.instance
@@ -53,6 +60,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
       print('Error storing item: $e');
     }
   }
+
   Future<void> addProduct(String productname, File? productImage) async {
     if (productDataList.contains(productname)) {
       showDialog(
@@ -60,7 +68,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text('Error'),
-              content: Text('Catogries name already exist'),
+              content: Text('Category name already exists'),
               actions: <Widget>[
                 TextButton(
                   onPressed: Navigator.of(context).pop,
@@ -74,14 +82,18 @@ class _SubCatogeriesState extends State<SubCatogeries> {
     try {
       String imageUrl = '';
       if (productImage != null) {
+        // Generate a unique name for the image
+        String uniqueImageName = Uuid().v4();
+
         Reference ref = FirebaseStorage.instance
             .ref()
             .child('product_image')
-            .child('productname');
+            .child(uniqueImageName);
         UploadTask uploadTask = ref.putFile(productImage!);
         TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => {});
         imageUrl = await taskSnapshot.ref.getDownloadURL();
       }
+
       await FirebaseFirestore.instance
           .collection('Product')
           .doc(widget.selectproducts)
@@ -91,28 +103,31 @@ class _SubCatogeriesState extends State<SubCatogeries> {
         'name': productname,
         'imagepath': imageUrl,
       });
+
       setState(() {
         productDataList.add(productname);
       });
+
       productNameController.clear();
       imageURLController.clear();
       setState(() {
         image = null;
       });
+
       showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text('Success'),
-              content: Text('product name added successfully'),
+              content: Text('Product name added successfully'),
               actions: <Widget>[
                 TextButton(
-                    onPressed: Navigator.of(context).pop, child: Text('ok')),
+                    onPressed: Navigator.of(context).pop, child: Text('Ok')),
               ],
             );
           });
     } catch (e) {
-      print('Error adding route: $e');
+      print('Error adding product: $e');
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -132,6 +147,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
       );
     }
   }
+
   Future<void> deleteProduct(String productId) async {
     try {
       await FirebaseFirestore.instance
@@ -145,10 +161,11 @@ class _SubCatogeriesState extends State<SubCatogeries> {
         productDataList.remove(productId);
       });
     } catch (e) {
-      print('Error deleting product:  $e');
+      print('Error deleting product: $e');
     }
   }
-  Future<void> _showDeleteConfirmationDialod(String productId) async {
+
+  Future<void> _showDeleteConfirmationDialog(String productId) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -158,7 +175,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('Do you want to delete this route?'),
+                Text('Do you want to delete this product?'),
               ],
             ),
           ),
@@ -172,7 +189,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
             TextButton(
               child: Text('Delete'),
               onPressed: () {
-                deleteProduct(productId); 
+                deleteProduct(productId);
                 Navigator.of(context).pop();
               },
             ),
@@ -181,16 +198,18 @@ class _SubCatogeriesState extends State<SubCatogeries> {
       },
     );
   }
+
   Future getGalleryImage() async {
-    final pickfile = await picker.pickImage(source: ImageSource.gallery);
+    final pickFile = await picker.pickImage(source: ImageSource.gallery);
     setState(() {
-      if (pickfile != null) {
-        image = File(pickfile.path);
+      if (pickFile != null) {
+        image = File(pickFile.path);
       } else {
-        print('no image pick');
+        print('No image selected');
       }
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -204,9 +223,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
                 children: [
                   Container(
                     padding: EdgeInsets.only(top: 20, left: 10),
-                    margin: EdgeInsets.only(
-                      top: 30,
-                    ),
+                    margin: EdgeInsets.only(top: 30),
                     width: MediaQuery.of(context).size.width,
                     height: 150,
                     decoration: BoxDecoration(
@@ -219,7 +236,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
                     child: Row(
                       children: [
                         AppIcon(
-                          icon: (Icons.arrow_back_ios),
+                          icon: Icons.arrow_back_ios,
                           ontap: () {
                             Navigator.of(context).pop();
                           },
@@ -256,8 +273,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: AppColor.textColor,
-                                  width: 5), // White border
+                                  color: AppColor.textColor, width: 5),
                             ),
                             child: GestureDetector(
                               onTap: () {
@@ -303,7 +319,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
                             ),
                           ),
                           onDismissed: (direction) {
-                            _showDeleteConfirmationDialod(document.id);
+                            _showDeleteConfirmationDialog(document.id);
                           },
                           child: ListTile(
                             onTap: () {
@@ -322,100 +338,107 @@ class _SubCatogeriesState extends State<SubCatogeries> {
                             },
                             title: Row(
                               children: [
-                                Stack(children: [
-                                  Container(
-                                    width: 270,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      color: AppColor.mainColor,
-                                    ),
-                                    child: Row(children: [
-                                      Container(
-                                        margin: EdgeInsets.only(left: 10),
-                                        width: 80,
-                                        height: 80,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                              color: Colors.white,
-                                              width: 2),
-                                        ),
-                                        child: ClipOval(
-                                            child: imgurl != null
-                                                ? Image.network(
-                                                    imgurl,
-                                                    width: 150,
-                                                    height: 150,
-                                                    fit: BoxFit.cover,
-                                                    loadingBuilder: (BuildContext
-                                                            context,
-                                                        Widget child,
-                                                        ImageChunkEvent?
-                                                            loadingProgress) {
-                                                      if (loadingProgress ==
-                                                          null) {
-                                                        return child;
-                                                      } else {
-                                                        return Center(
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                            value: loadingProgress
-                                                                        .expectedTotalBytes !=
-                                                                    null
-                                                                ? loadingProgress
-                                                                        .cumulativeBytesLoaded /
-                                                                    loadingProgress
-                                                                        .expectedTotalBytes!
-                                                                : null,
-                                                          ),
-                                                        );
-                                                      }
-                                                    },
-                                                    errorBuilder: (context,
-                                                        error, stackTrace) {
-                                                      return Icon(Icons.error);
-                                                    },
-                                                  )
-                                                : Center(
-                                                    child: Icon(
-                                                      Icons.image,
+                                Stack(
+                                  children: [
+                                    Container(
+                                      width: 270,
+                                      height: 100,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        color: AppColor.mainColor,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            margin: EdgeInsets.only(left: 10),
+                                            width: 80,
+                                            height: 80,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 2),
+                                            ),
+                                            child: ClipOval(
+                                              child: imgurl != null
+                                                  ? Image.network(
+                                                      imgurl,
+                                                      width: 150,
+                                                      height: 150,
+                                                      fit: BoxFit.cover,
+                                                      loadingBuilder:
+                                                          (BuildContext context,
+                                                              Widget child,
+                                                              ImageChunkEvent?
+                                                                  loadingProgress) {
+                                                        if (loadingProgress ==
+                                                            null) {
+                                                          return child;
+                                                        } else {
+                                                          return Center(
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              value: loadingProgress
+                                                                          .expectedTotalBytes !=
+                                                                      null
+                                                                  ? loadingProgress
+                                                                          .cumulativeBytesLoaded /
+                                                                      loadingProgress
+                                                                          .expectedTotalBytes!
+                                                                  : null,
+                                                            ),
+                                                          );
+                                                        }
+                                                      },
+                                                      errorBuilder: (context,
+                                                          error, stackTrace) {
+                                                        return Icon(Icons.error);
+                                                      },
+                                                    )
+                                                  : Center(
+                                                      child: Icon(
+                                                        Icons.image,
+                                                      ),
                                                     ),
-                                                  )),
-                                      ),
-                                      SizedBox(
-                                        width: 30,
-                                      ),
-                                      Center(
-                                        child: Text(
-                                          pName,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 25,
+                                            ),
                                           ),
-                                        ),
+                                          SizedBox(
+                                            width: 30,
+                                          ),
+                                          Center(
+                                            child: Text(
+                                              pName,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 25,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ]),
-                                  ),
-                                  Positioned(
+                                    ),
+                                    Positioned(
                                       top: 40,
                                       left: 60,
                                       child: Container(
-                                          width: 40,
-                                          height: 40, 
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.white,
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.white,
+                                        ),
+                                        child: IconButton(
+                                          icon: Icon(
+                                            Icons.edit,
+                                            color: AppColor.mainColor,
                                           ),
-                                          child: IconButton(
-                                            icon: Icon(
-                                              Icons.edit,
-                                              color: AppColor.mainColor,
-                                            ),
-                                            onPressed: () {},
-                                          ))),
-                                ]),
+                                          onPressed: () {},
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                                 IconButton(
                                   icon: Icon(Icons.edit),
                                   onPressed: () {},
@@ -430,7 +453,7 @@ class _SubCatogeriesState extends State<SubCatogeries> {
                 ],
               );
             } else {
-              return Center(child: Text('No route data available'));
+              return Center(child: Text('No product data available'));
             }
           } else {
             return Center(child: CircularProgressIndicator());
